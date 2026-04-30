@@ -1,4 +1,4 @@
-const Draft = require("../models/draft");
+const Draft = require("../models/Draft");
 const { Post } = require("../models/post");
 
 //  Helper

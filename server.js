@@ -104,8 +104,6 @@ app.get('/api/debug/recent-post', async (req, res) => {
 });
 
 // Static files for uploads
-app.use('/uploads', express.static('uploads'));
-app.use('/uploads/stories', express.static('uploads/stories'));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Error handling middleware

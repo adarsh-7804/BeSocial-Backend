@@ -7,7 +7,7 @@ const savedPostRoutes = require("./routes/savedPostRoutes");
 const notInterested = require("./routes/notInterested")
 const storyRoutes = require('./routes/storyRoutes');
 const highlightRoutes = require('./routes/highlightRoutes');
-const Post = require('./models/post');
+const { Post } = require('./models/post');
 const path = require('path')
 
 const connectDB = require('./config/db');

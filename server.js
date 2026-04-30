@@ -19,7 +19,7 @@ const { initScheduledPostJob } = require("./utils/schedulePublisher");
 const { initStoryCleanupJob } = require("./utils/storyCleanup");
 
 dotenv.config();
-connectDB();
+// connectDB();
 
 const express = require('express');
 const http  = require('http') 
@@ -46,10 +46,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 }));
 
-// app.options("/*", cors({
-//   origin: allowedOrigins,
-//   credentials: true
-// }));
+
 
 const io = new Server(server, {
   cors: {
@@ -117,15 +114,24 @@ socketHandler(io);
 
 const PORT = process.env.PORT || 5000;
 
-// Start server and initialize cron job
-server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-    
-    // Initialize the scheduled post publisher cron job
-    initScheduledPostJob();
-    console.log("[Scheduler] Scheduled post publisher initialized");
+async function startServer() {
+  try {
+    await connectDB();
 
-    // Initialize story cleanup cron job
-    initStoryCleanupJob();
-    console.log("[Stories] Story cleanup job initialized");
-});
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+
+      initScheduledPostJob();
+      console.log("[Scheduler] Started");
+
+      initStoryCleanupJob();
+      console.log("[Stories] Cleanup started");
+    });
+
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    process.exit(1);
+  }
+}
+
+startServer();

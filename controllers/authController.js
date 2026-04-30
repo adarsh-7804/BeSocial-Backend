@@ -391,7 +391,7 @@ async function forgetPass(req, res) {
     const resetToken = user.createResetpasswordToken();
     await user.save({ validateBeforeSave: false });
 
-    const resetUrl = `http://localhost:5000/api/auth/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.CLIENT_URL}/api/auth/reset-password/${resetToken}`;
 
     const mailOption = {
       from: process.env.EMAIL_USER,

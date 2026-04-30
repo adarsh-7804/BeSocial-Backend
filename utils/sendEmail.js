@@ -34,14 +34,20 @@ const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const sendEmail = async ({ to, subject, text, html, replyTo }) => {
-  await resend.emails.send({
-    from: `BeSocial <${process.env.EMAIL_FROM}>`,
-    to,
-    subject,
-    html: html || `<p>${text}</p>`,
-    reply_to: replyTo,
-  });
+const sendEmail = async ({ to, subject, text, html }) => {
+  try {
+    const data = await resend.emails.send({
+      from: `BeSocial <${process.env.EMAIL_FROM}>`,
+      to,
+      subject,
+      html: html || `<p>${text}</p>`,
+    });
+
+    console.log("MAIL SENT:", data);
+  } catch (error) {
+    console.log("MAIL ERROR:", error);
+    throw error;
+  }
 };
 
 module.exports = sendEmail;

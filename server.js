@@ -1,3 +1,6 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
 const draftRoutes = require('./routes/draftRoutes');
@@ -11,14 +14,15 @@ const { Post } = require('./models/post');
 const path = require('path')
 
 const connectDB = require('./config/db');
-const dotenv = require('dotenv');
+
+
+
 const multer = require('multer'); // Added missing import
 
 // Import the cron job initializers
 const { initScheduledPostJob } = require("./utils/schedulePublisher");
 const { initStoryCleanupJob } = require("./utils/storyCleanup");
 
-dotenv.config();
 // connectDB();
 
 const express = require('express');

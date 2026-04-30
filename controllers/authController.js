@@ -6,9 +6,7 @@ const {
   generateAccessToken,
   generateRefreshToken,
 } = require("../utils/tokenGenerator");
-const {
-  createSecurityAlertNotification,
-} = require("./Notificationcontroller");
+const { createSecurityAlertNotification } = require("./Notificationcontroller");
 
 const generateReferralCode = (name) => {
   return name.toLowerCase() + Math.random().toString(36).substring(2, 8);
@@ -94,8 +92,11 @@ async function registerUser(req, res) {
       expiresIn: "1h",
     });
 
-    res.cookie("token", token, { httpOnly: true });
-
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    });
     res.status(201).json({
       message: "User registered successfully",
       token,
@@ -240,8 +241,16 @@ async function verifyLoginOtp(req, res) {
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.cookie("token", accessToken, { httpOnly: true });
-    res.cookie("refreshToken", refreshToken, { httpOnly: true });
+    res.cookie("token", accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    });
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    });
 
     const fullUser = await User.findById(user._id)
       .select(
@@ -299,7 +308,11 @@ async function refreshAccessToken(req, res) {
 
     const newAccessToken = generateAccessToken(user);
 
-    res.cookie("token", newAccessToken, { httpOnly: true });
+    res.cookie("token", newAccessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    });
 
     return res.json({ accessToken: newAccessToken });
   } catch (err) {
@@ -311,7 +324,17 @@ async function refreshAccessToken(req, res) {
 
 async function logoutUser(req, res) {
   try {
-    res.clearCookie("token");
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    });
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    });
     return res.status(200).json({ message: "Logout successful" });
   } catch (err) {
     return res.status(500).json({ message: "Server error", err });
@@ -792,7 +815,7 @@ async function sendInvite(req, res) {
     }
 
     const referralCode = currentUser.referralCode || "";
-    const inviteLink = `${"http://localhost:5173"}/?ref=${referralCode}`;
+    const inviteLink = `${process.env.CLIENT_URL}/?ref=${referralCode}`;
 
     await sendEmail({
       to: toEmail,

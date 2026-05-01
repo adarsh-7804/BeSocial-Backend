@@ -1,4 +1,4 @@
-// Run this in Render Shell:
+// Run this in your terminal (locally, connected to MongoDB Atlas):
 // node scripts/migrateOldMedia.js
 
 require("dotenv").config();
@@ -6,40 +6,65 @@ const mongoose = require("mongoose");
 
 async function migrate() {
   await mongoose.connect(process.env.MONGO_URI);
-  console.log("✅ Connected");
+  console.log("✅ Connected to MongoDB");
 
   const db = mongoose.connection.db;
   const posts = db.collection("posts");
 
-  // Find all posts where media has a local "url" field (old format)
-  const oldPosts = await posts.find({
-    "media.url": { $exists: true, $not: /^https:\/\// }
-  }).toArray();
+  const allPosts = await posts.find({ "media.0": { $exists: true } }).toArray();
+  console.log(`Total posts with media: ${allPosts.length}`);
 
-  console.log(`Found ${oldPosts.length} posts with broken local media`);
+  let fixed = 0;
 
-  for (const post of oldPosts) {
+  for (const post of allPosts) {
+    let needsUpdate = false;
+
     const updatedMedia = post.media.map((m) => {
-      if (m.url && !m.url.startsWith("https://")) {
-        // Mark as unavailable - file is gone from Render
-        return {
-          ...m,
-          url: null,
-          thumbnailUrl: null,
-          _broken: true,
-        };
+      const isLocalPath = (val) =>
+        typeof val === "string" &&
+        val.length > 0 &&
+        !val.startsWith("https://res.cloudinary.com");
+
+      let updated = { ...m };
+
+      // Fix legacy url field
+      if (isLocalPath(m.url)) { updated.url = null; needsUpdate = true; }
+
+      // Fix image fields
+      if (m.image) {
+        let img = { ...m.image };
+        if (isLocalPath(m.image.thumbnail)) { img.thumbnail = null; needsUpdate = true; }
+        if (isLocalPath(m.image.medium))    { img.medium = null;    needsUpdate = true; }
+        if (isLocalPath(m.image.full))      { img.full = null;      needsUpdate = true; }
+        updated.image = img;
       }
-      return m;
+
+      // Fix video fields
+      if (m.video) {
+        let vid = { ...m.video };
+        if (isLocalPath(m.video.thumbnail)) { vid.thumbnail = null; needsUpdate = true; }
+        if (m.video.variants) {
+          let vars = { ...m.video.variants };
+          for (const [key, val] of Object.entries(m.video.variants)) {
+            if (isLocalPath(val)) { vars[key] = null; needsUpdate = true; }
+          }
+          vid.variants = vars;
+        }
+        updated.video = vid;
+      }
+
+      return updated;
     });
 
-    await posts.updateOne(
-      { _id: post._id },
-      { $set: { media: updatedMedia } }
-    );
+    if (needsUpdate) {
+      await posts.updateOne({ _id: post._id }, { $set: { media: updatedMedia } });
+      fixed++;
+      console.log(`Fixed post ${post._id}`);
+    }
   }
 
-  console.log(`✅ Migrated ${oldPosts.length} posts`);
+  console.log(`\n✅ Done. Fixed ${fixed} posts.`);
   process.exit(0);
 }
 
-migrate().catch((e) => { console.error(e); process.exit(1); });
+migrate().catch((e) => { console.error("❌ Failed:", e); process.exit(1); });

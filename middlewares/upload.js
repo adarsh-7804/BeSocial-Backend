@@ -1,71 +1,148 @@
+// const multer = require("multer");
+// const path = require("path");
+// const fs = require("fs");
+
+// // Create uploads directory if it doesn't exist
+// const uploadsDir = "uploads";
+// if (!fs.existsSync(uploadsDir)) {
+//   fs.mkdirSync(uploadsDir, { recursive: true });
+// }
+
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "uploads/");
+//   },
+//   filename: function (req, file, cb) {
+//     const uniqueSuffix =
+//       Date.now() + "-" + Math.round(Math.random() * 1e9);
+//     cb(
+//       null,
+//       file.fieldname +
+//         "-" +
+//         uniqueSuffix +
+//         path.extname(file.originalname)
+//     );
+//   },
+// });
+
+// const fileFilter = (req, file, cb) => {
+//   const allowedTypes = [
+//     // For Image
+//     "image/jpeg",
+//     "image/png",
+//     "image/gif",
+//     "image/webp",
+//     // For Video
+//     "video/mp4",
+//     "video/quicktime",
+//     "video/webm",
+//     "video/avi",
+//     // For Files
+//     "application/pdf",
+//     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+//     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+//     "application/zip",
+//     "text/plain",
+//   ];
+
+//   if (allowedTypes.includes(file.mimetype)) {
+//     cb(null, true);
+//   } else {
+//     cb(new Error(`Invalid file type: ${ file.mimetype }`), false);
+//   }
+// };
+
+// const multerUpload = multer({
+//   storage: storage,
+//   fileFilter,
+//   limits: {
+//     fileSize: 150 * 1024 * 1024,
+//   },
+// });
+
+// // 👇 IMPORTANT: wrap it
+// const upload = (req, res, next) => {
+//   multerUpload.array("media", 10)(req, res, function (err) {
+//     if (err) {
+//       return res.status(400).json({ message: err.message });
+//     }
+//     next();
+//   });
+// };
+
+// module.exports = upload;
+
+
+
+
+
+
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const cloudinary = require("../config/cloudinary");
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = "uploads";
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
+// Use memory storage - we upload buffer directly to Cloudinary
+const multerUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "image/jpeg", "image/png", "image/gif", "image/webp",
+      "video/mp4", "video/quicktime", "video/webm", "video/avi",
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/zip",
+      "text/plain",
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file type: ${file.mimetype}`), false);
+    }
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix =
-      Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname +
-        "-" +
-        uniqueSuffix +
-        path.extname(file.originalname)
-    );
-  },
+  limits: { fileSize: 150 * 1024 * 1024 }, // 150MB
 });
 
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    // For Image
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/webp",
-    // For Video
-    "video/mp4",
-    "video/quicktime",
-    "video/webm",
-    "video/avi",
-    // For Files
-    "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/zip",
-    "text/plain",
-  ];
-
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error(`Invalid file type: ${ file.mimetype }`), false);
-  }
+const uploadToCloudinary = (buffer, options) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+    stream.end(buffer);
+  });
 };
 
-const multerUpload = multer({
-  storage: storage,
-  fileFilter,
-  limits: {
-    fileSize: 150 * 1024 * 1024,
-  },
-});
-
-// 👇 IMPORTANT: wrap it
+// Middleware: upload array of "media" files to Cloudinary
 const upload = (req, res, next) => {
-  multerUpload.array("media", 10)(req, res, function (err) {
+  multerUpload.array("media", 10)(req, res, async function (err) {
     if (err) {
       return res.status(400).json({ message: err.message });
     }
+
+    if (req.files && req.files.length > 0) {
+      try {
+        const uploadedFiles = [];
+        for (const file of req.files) {
+          const isVideo = file.mimetype.startsWith("video/");
+          const result = await uploadToCloudinary(file.buffer, {
+            folder: "besocial/posts",
+            resource_type: isVideo ? "video" : "auto",
+            transformation: isVideo ? [{ quality: "auto" }] : [{ quality: "auto", fetch_format: "auto" }],
+          });
+          uploadedFiles.push({
+            ...file,
+            path: result.secure_url,
+            cloudinaryUrl: result.secure_url,
+            cloudinaryPublicId: result.public_id,
+          });
+        }
+        req.files = uploadedFiles;
+      } catch (uploadErr) {
+        console.error("Cloudinary upload error:", uploadErr);
+        return res.status(500).json({ message: "Media upload failed" });
+      }
+    }
+
     next();
   });
 };

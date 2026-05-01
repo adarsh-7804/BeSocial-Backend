@@ -200,6 +200,27 @@ async function createPost(req, res) {
             uploadedAt: new Date(),
           },
         };
+
+        console.log("=== CREATE POST DEBUG ===");
+        console.log("files count:", files.length);
+        if (files.length > 0) {
+          files.forEach((f, i) => {
+            console.log(`file[${i}]:`, {
+              originalname: f.originalname,
+              mimetype: f.mimetype,
+              hasBuffer: !!f.buffer,
+              bufferSize: f.buffer?.length,
+              path: f.path,
+              cloudinaryUrl: f.cloudinaryUrl,
+              cloudinaryPublicId: f.cloudinaryPublicId,
+              hasCompressed: !!f.compressed,
+              compressed: f.compressed
+                ? JSON.stringify(f.compressed).substring(0, 200)
+                : null,
+            });
+          });
+        }
+        console.log("=========================");
       }
 
       // Cloudinary video upload result

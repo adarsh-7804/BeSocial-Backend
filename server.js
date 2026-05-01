@@ -40,10 +40,12 @@ const server = http.createServer(app)
 
 app.set("etag", false);
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://be-social-frontend-five.vercel.app"
-];
+const allowedOrigins = process.env.CLIENT_URL;
+
+// const allowedOrigins = [
+//   "http://localhost:5173",
+//   "https://be-social-frontend-five.vercel.app"
+// ];
 
 app.use(cors({
   origin: function(origin, callback) {

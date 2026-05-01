@@ -27,50 +27,99 @@ const postSchema = new mongoose.Schema(
     //   },
     // ],
 
+    // media: [
+    //   {
+    //     fileId: String,
+    //     originalName: String,
+    //     type: {
+    //       type: String,
+    //       enum: ["image", "video", "gif"],
+    //       required: true,
+    //     },
+
+    //     // For compressed images
+    //     image: {
+    //       thumbnail: String, 
+    //       medium: String, 
+    //       full: String, 
+    //       originalSize: Number,
+    //       compressedSize: Number,
+    //       compressionRatio: Number,
+    //       format: { type: String, default: "webp" },
+    //       uploadedAt: { type: Date, default: Date.now },
+    //     },
+
+    //     // For transcoded videos
+    //     video: {
+    //       thumbnail: String, 
+    //       variants: {
+    //         "360p": String,
+    //         "720p": String,
+    //         "1080p": String,
+    //       },
+    //       duration: Number, 
+    //       resolution: {
+    //         width: Number,
+    //         height: Number,
+    //       },
+    //       fps: Number,
+    //       codec: String,
+    //       originalSize: Number,
+    //       uploadedAt: { type: Date, default: Date.now },
+    //     },
+
+    //     uploadedAt: { type: Date, default: Date.now },
+    //   },
+    // ],
     media: [
-      {
-        fileId: String,
-        originalName: String,
-        type: {
-          type: String,
-          enum: ["image", "video", "gif"],
-          required: true,
-        },
-
-        // For compressed images
-        image: {
-          thumbnail: String, 
-          medium: String, 
-          full: String, 
-          originalSize: Number,
-          compressedSize: Number,
-          compressionRatio: Number,
-          format: { type: String, default: "webp" },
-          uploadedAt: { type: Date, default: Date.now },
-        },
-
-        // For transcoded videos
-        video: {
-          thumbnail: String, 
-          variants: {
-            "360p": String,
-            "720p": String,
-            "1080p": String,
-          },
-          duration: Number, 
-          resolution: {
-            width: Number,
-            height: Number,
-          },
-          fps: Number,
-          codec: String,
-          originalSize: Number,
-          uploadedAt: { type: Date, default: Date.now },
-        },
-
-        uploadedAt: { type: Date, default: Date.now },
+  {
+    // ── Legacy fields (old posts stored media as {url, type}) ──
+    url: { type: String, default: null },
+    thumbnailUrl: { type: String, default: null },
+ 
+    // ── New fields ──
+    fileId: String,
+    originalName: String,
+    type: {
+      type: String,
+      enum: ["image", "video", "gif"],
+      required: true,
+    },
+ 
+    // For compressed images
+    image: {
+      thumbnail: String,
+      medium: String,
+      full: String,
+      originalSize: Number,
+      compressedSize: Number,
+      compressionRatio: Number,
+      format: { type: String, default: "webp" },
+      uploadedAt: { type: Date, default: Date.now },
+    },
+ 
+    // For transcoded videos
+    video: {
+      thumbnail: String,
+      variants: {
+        "360p": String,
+        "720p": String,
+        "1080p": String,
       },
-    ],
+      duration: Number,
+      resolution: {
+        width: Number,
+        height: Number,
+      },
+      fps: Number,
+      codec: String,
+      originalSize: Number,
+      uploadedAt: { type: Date, default: Date.now },
+    },
+ 
+    uploadedAt: { type: Date, default: Date.now },
+  },
+],
 
     poll: {
       question: { type: String },

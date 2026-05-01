@@ -49,7 +49,7 @@ async function createPost(req, res) {
   try {
     const caption = req.body?.caption || "";
     const files = req.files || [];
-    const videoFile = files.find(f => f.mimetype?.startsWith("video/"));
+    const videoFile = files.find((f) => f.mimetype?.startsWith("video/"));
     const content = req.body?.content || "";
     const locationName = req.body?.locationName || "";
     const lat = req.body?.lat || "";
@@ -82,103 +82,174 @@ async function createPost(req, res) {
 
     console.log("\nCREATE POST START ");
 
-    const pathToUrl = (filePath) => {
-      if (!filePath) return null;
-      let normalizedPath = filePath.replace(/\\/g, "/");
-      const uploadsIndex = normalizedPath.indexOf("uploads/");
-      if (uploadsIndex >= 0) {
-        return normalizedPath.substring(uploadsIndex);
-      }
-      return normalizedPath;
-    };
+    // const pathToUrl = (filePath) => {
+    //   if (!filePath) return null;
+    //   let normalizedPath = filePath.replace(/\\/g, "/");
+    //   const uploadsIndex = normalizedPath.indexOf("uploads/");
+    //   if (uploadsIndex >= 0) {
+    //     return normalizedPath.substring(uploadsIndex);
+    //   }
+    //   return normalizedPath;
+    // };
 
     // ===== PROCESS MEDIA FILES =====
-    const media = files.map((file, index) => {
+    // const media = files.map((file, index) => {
+    //   const isVideo = file.mimetype?.startsWith("video/");
+    //   const isGif = file.mimetype === "image/gif" || file.originalname?.endsWith(".gif");
+
+    //   // Check if file has compression data
+    //   if (file.compressed && file.mimetype?.startsWith("image/")) {
+    //     console.log(`✅ Using compressed image: ${file.originalname}`);
+
+    //     const mediaItem = {
+    //       fileId: path.parse(file.filename).name,
+    //       originalName: file.originalname,
+    //       type: isGif ? "gif" : "image",
+    //       image: {
+    //         thumbnail: pathToUrl(file.compressed.thumbnail),
+    //         medium: pathToUrl(file.compressed.medium),
+    //         full: pathToUrl(file.compressed.full),
+    //         originalSize: file.compressed.originalSize,
+    //         compressedSize: file.compressed.compressedSize,
+    //         compressionRatio: file.compressed.compressionRatio,
+    //         format: file.compressed.format,
+    //         uploadedAt: new Date(),
+    //       },
+    //     };
+
+    //     console.log(`  📊 Compression: ${file.compressed.compressionRatio}% saved`);
+    //     return mediaItem;
+    //   }
+    //   // Video - keep original for now (will add transcoding later)
+    //   else if (isVideo && file.compressed?.type === "video") {
+    //     console.log(`Video transcode in use: ${file.originalname} `);
+
+    //     // Convert video variants to URLs
+    //     const convertedVariants = {};
+    //     if (file.compressed.variants) {
+    //       Object.entries(file.compressed.variants).forEach(([key, value]) => {
+    //         convertedVariants[key] = pathToUrl(value);
+    //       });
+    //     }
+
+    //     const mediaItem = {
+    //       fileId: path.parse(file.filename).name,
+    //       originalName: file.originalname,
+    //       type: "video",
+    //       video: {
+    //         thumbnail: pathToUrl(file.compressed.thumbnail) || null,
+    //         variants : convertedVariants,
+    //         duration: file.compressed.info?.duration || 0,
+    //         resolution: {
+    //           width : file.compressed.info?.video?.width || 0,
+    //           height : file.compressed.info?.video?.height || 0,
+    //         },
+    //         fps: file.compressed.info?.video?.fps || 0,
+    //         codec : file.compressed.info?.video?.codec ||  "",
+    //         originalSize : file.compressed.originalSize || 0,
+    //         uploadedAt: new  Date()
+    //       },
+    //     };
+
+    //     // if (index === 0 && videoFile) {
+    //     //   try {
+    //     //     const normalizedPath = thumbnailPath?.replace(/\\/g, "/");
+    //     //     const uploadsIndex = normalizedPath?.indexOf("uploads/");
+    //     //     if (uploadsIndex >= 0) {
+    //     //       mediaItem.video.thumbnail = normalizedPath.substring(uploadsIndex);
+    //     //     }
+    //     //   } catch (err) {
+    //     //     console.error("❌ Error processing video thumbnail:", err.message);
+    //     //   }
+    //     // }
+    //     return mediaItem;
+    //   }
+    //   // Fallback for other files (shouldn't happen with image-only middleware)
+    //   else {
+    //     console.log(`⚠️ Uncompressed file: ${file.originalname}`);
+
+    //     return {
+    //       fileId: path.parse(file.filename).name,
+    //       originalName: file.originalname,
+    //       type: isGif ? "gif" : isVideo ? "video" : "image",
+    //     };
+    //   }
+    // });
+
+    const media = files.map((file) => {
       const isVideo = file.mimetype?.startsWith("video/");
-      const isGif = file.mimetype === "image/gif" || file.originalname?.endsWith(".gif");
-      
-      // Check if file has compression data
+      const isGif =
+        file.mimetype === "image/gif" || file.originalname?.endsWith(".gif");
+
+      // Cloudinary image upload result
       if (file.compressed && file.mimetype?.startsWith("image/")) {
-        console.log(`✅ Using compressed image: ${file.originalname}`);
-        
-        const mediaItem = {
-          fileId: path.parse(file.filename).name,
+        console.log(`✅ Using Cloudinary image: ${file.originalname}`);
+
+        return {
+          fileId: file.cloudinaryPublicId || file.originalname,
           originalName: file.originalname,
           type: isGif ? "gif" : "image",
           image: {
-            thumbnail: pathToUrl(file.compressed.thumbnail),
-            medium: pathToUrl(file.compressed.medium),
-            full: pathToUrl(file.compressed.full),
-            originalSize: file.compressed.originalSize,
-            compressedSize: file.compressed.compressedSize,
-            compressionRatio: file.compressed.compressionRatio,
-            format: file.compressed.format,
+            thumbnail: file.compressed.thumbnail, // Cloudinary URL
+            medium: file.compressed.medium, // Cloudinary URL
+            full: file.compressed.full, // Cloudinary URL
+            originalSize: file.size,
+            compressedSize: file.size,
+            compressionRatio: 0,
+            format: "webp",
             uploadedAt: new Date(),
           },
         };
-        
-        console.log(`  📊 Compression: ${file.compressed.compressionRatio}% saved`);
-        return mediaItem;
-      } 
-      // Video - keep original for now (will add transcoding later)
+      }
+
+      // Cloudinary video upload result
       else if (isVideo && file.compressed?.type === "video") {
-        console.log(`Video transcode in use: ${file.originalname} `);
-        
-        // Convert video variants to URLs
-        const convertedVariants = {};
-        if (file.compressed.variants) {
-          Object.entries(file.compressed.variants).forEach(([key, value]) => {
-            convertedVariants[key] = pathToUrl(value);
-          });
-        }
-        
-        const mediaItem = {
-          fileId: path.parse(file.filename).name,
+        console.log(`✅ Using Cloudinary video: ${file.originalname}`);
+
+        return {
+          fileId: file.cloudinaryPublicId || file.originalname,
           originalName: file.originalname,
           type: "video",
           video: {
-            thumbnail: pathToUrl(file.compressed.thumbnail) || null,
-            variants : convertedVariants,
+            thumbnail: file.compressed.thumbnail || null, // Cloudinary URL
+            variants: file.compressed.variants || {}, // Cloudinary URLs
             duration: file.compressed.info?.duration || 0,
             resolution: {
-              width : file.compressed.info?.video?.width || 0,
-              height : file.compressed.info?.video?.height || 0,
+              width: file.compressed.info?.width || 0,
+              height: file.compressed.info?.height || 0,
             },
-            fps: file.compressed.info?.video?.fps || 0,
-            codec : file.compressed.info?.video?.codec ||  "",
-            originalSize : file.compressed.originalSize || 0,
-            uploadedAt: new  Date() 
+            fps: 0,
+            codec: "",
+            originalSize: file.size || 0,
+            uploadedAt: new Date(),
           },
         };
-        
-        // if (index === 0 && videoFile) {
-        //   try {
-        //     const normalizedPath = thumbnailPath?.replace(/\\/g, "/");
-        //     const uploadsIndex = normalizedPath?.indexOf("uploads/");
-        //     if (uploadsIndex >= 0) {
-        //       mediaItem.video.thumbnail = normalizedPath.substring(uploadsIndex);
-        //     }
-        //   } catch (err) {
-        //     console.error("❌ Error processing video thumbnail:", err.message);
-        //   }
-        // }
-        return mediaItem;
       }
-      // Fallback for other files (shouldn't happen with image-only middleware)
+
+      // Fallback — file uploaded but no compression data
       else {
-        console.log(`⚠️ Uncompressed file: ${file.originalname}`);
-        
+        console.log(`⚠️ Fallback media item: ${file.originalname}`);
         return {
-          fileId: path.parse(file.filename).name,
+          fileId: file.cloudinaryPublicId || file.originalname,
           originalName: file.originalname,
           type: isGif ? "gif" : isVideo ? "video" : "image",
+          image: file.path
+            ? {
+                thumbnail: file.path,
+                medium: file.path,
+                full: file.path,
+                uploadedAt: new Date(),
+              }
+            : undefined,
         };
       }
     });
 
     console.log("📦 Media array prepared:", media.length, "items");
 
-    const audience = ["public", "friends", "private"].includes(req.body?.audience)
+    const audience = ["public", "friends", "private"].includes(
+      req.body?.audience,
+    )
       ? req.body.audience
       : "public";
 
@@ -242,7 +313,9 @@ async function createPost(req, res) {
       audience,
       isAdult,
       isAdvertisement,
-      allowDownload: req.body?.allowDownload !== "false" && req.body?.allowDownload !== false,
+      allowDownload:
+        req.body?.allowDownload !== "false" &&
+        req.body?.allowDownload !== false,
     });
 
     await post.save();
@@ -273,11 +346,14 @@ async function createPost(req, res) {
     if (mentionsData.length > 0) {
       for (const mention of mentionsData) {
         const mentionedUserId = mention.user;
-        
-        if (mentionedUserId.toString() !== req.user._id.toString()) {
 
-          await createMentionNotification(mentionedUserId, req.user._id, post._id);
-          
+        if (mentionedUserId.toString() !== req.user._id.toString()) {
+          await createMentionNotification(
+            mentionedUserId,
+            req.user._id,
+            post._id,
+          );
+
           req.io.to(mentionedUserId.toString()).emit("mention_notification", {
             recipientId: mentionedUserId,
             senderId: req.user._id,
@@ -384,11 +460,11 @@ async function toggleLike(req, res) {
         { new: true },
       );
 
-        req.io.to(post.user.toString()).emit("like_notification", {
-          recipientId: post.user,
-          senderId: userId,
-          postId: postId,
-        });
+      req.io.to(post.user.toString()).emit("like_notification", {
+        recipientId: post.user,
+        senderId: userId,
+        postId: postId,
+      });
     }
 
     res.json({ liked: !existingLike, likesCount: updatedPost.likesCount });
@@ -477,7 +553,7 @@ async function addComment(req, res) {
         post.user,
         req.user._id,
         req.params.id,
-        req.body.text
+        req.body.text,
       );
 
       req.io.to(post.user.toString()).emit("comment_notification", {
@@ -522,7 +598,7 @@ async function replyOnComment(req, res) {
         comment.user,
         req.user._id,
         comment.post,
-        text
+        text,
       );
 
       req.io.to(comment.user.toString()).emit("reply_notification", {
@@ -585,7 +661,10 @@ async function getUserPosts(req, res) {
 
     // Debug log for first post with media
     if (posts.length > 0 && posts[0].media?.length > 0) {
-      console.log("📸 FIRST POST MEDIA STRUCTURE:", JSON.stringify(posts[0].media[0], null, 2));
+      console.log(
+        "📸 FIRST POST MEDIA STRUCTURE:",
+        JSON.stringify(posts[0].media[0], null, 2),
+      );
     }
 
     const postIds = posts.map((p) => p._id);
@@ -656,12 +735,11 @@ async function getPostReactions(req, res) {
   }
 }
 
-
 async function addView(req, res) {
   try {
     const postId = req.params.id;
     const userId = req.user?._id;
-    const duration = req.body?.duration || 0; 
+    const duration = req.body?.duration || 0;
 
     console.log("View Track Request:", { postId, userId, duration });
 
@@ -675,13 +753,7 @@ async function addView(req, res) {
     // Check if post has videos
     const hasVideo = post.media && post.media.some((m) => m.type === "video");
 
-    console.log(
-      "Post has video:",
-      hasVideo,
-      "Duration:",
-      duration,
-      "seconds",
-    );
+    console.log("Post has video:", hasVideo, "Duration:", duration, "seconds");
 
     // Only count views if:
     // 1. Post has video AND duration >= 2 seconds
@@ -746,7 +818,6 @@ async function addView(req, res) {
           " User already viewed (old structure) - view not counted again",
         );
       } else if (duration > (existingView.duration || 0)) {
-        
         existingView.duration = duration;
         existingView.timestamp = new Date();
         console.log("User view updated with longer duration:", duration);

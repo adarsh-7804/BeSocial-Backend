@@ -1,3 +1,4 @@
+  const profileUpload = require("../middlewares/profileUpload");
   const {
     registerUser,
     loginUser,
@@ -34,12 +35,12 @@
   const { searchUser }  = require("../controllers/searchController")
 
 
-  const multer = require("multer");
-  const path = require("path");
+  // const multer = require("multer");
+  // const path = require("path");
 
-  const upload = multer({
-    dest: "uploads/",
-  });
+  // const upload = multer({
+  //   dest: "uploads/",
+  // });
 
   const router = require("express").Router();
   // const authController = require('../controllers/authController');
@@ -60,13 +61,20 @@
   router.post("/user/send-verify-otp", authUserMiddlewar, sendVerifyOtp);
   router.post("/user/verify-email", authUserMiddlewar, verifyEmial);
 
+  // router.put(
+  //   "/user/update-profile-data",
+  //   authUserMiddlewar,
+  //   upload.fields([ 
+  //     { name: "avatar", maxCount: 1 },
+  //     { name: "coverImage", maxCount: 1 },
+  //   ]),
+  //   updateProfile,
+  // );
+
   router.put(
     "/user/update-profile-data",
     authUserMiddlewar,
-    upload.fields([ 
-      { name: "avatar", maxCount: 1 },
-      { name: "coverImage", maxCount: 1 },
-    ]),
+    profileUpload,
     updateProfile,
   );
 

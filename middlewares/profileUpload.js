@@ -1,19 +1,5 @@
-// This is the fix for your user profile upload middleware
-// wherever you handle avatar and coverImage uploads
-
-// ADD this to your config/cloudinary.js (already exists, just confirming)
-// const cloudinary = require("cloudinary").v2;
-// cloudinary.config({ ... });
-
-// ─────────────────────────────────────────────────────────────
-// Find the middleware used in your user/auth routes for 
-// avatar and coverImage uploads. It likely looks like:
-//
-//   const upload = multer({ storage: multer.diskStorage({...}) })
-//   router.put('/update', upload.fields([{name:'avatar'}, {name:'coverImage'}]), ...)
-//
-// Replace that middleware with this:
-// ─────────────────────────────────────────────────────────────
+// Profile Upload Middleware - Avatar & Cover Image to Cloudinary
+// ─────────────────────────────────────────────────────────────────────────────
 
 const multer = require("multer");
 const cloudinary = require("../config/cloudinary");
@@ -46,34 +32,70 @@ const profileUpload = (req, res, next) => {
     if (err) return res.status(400).json({ message: err.message });
 
     try {
+      const errors = [];
+
       // Upload avatar to Cloudinary if provided
       if (req.files?.avatar?.[0]) {
-        const file = req.files.avatar[0];
-        const result = await uploadToCloudinary(file.buffer, {
-          folder: "besocial/avatars",
-          resource_type: "image",
-          transformation: [{ width: 400, height: 400, crop: "fill", quality: "auto", fetch_format: "auto" }],
-        });
-        // Override file path with Cloudinary URL
-        req.files.avatar[0].path = result.secure_url;
-        req.files.avatar[0].cloudinaryUrl = result.secure_url;
-        console.log("✅ Avatar uploaded to Cloudinary:", result.secure_url);
+        try {
+          const file = req.files.avatar[0];
+          const result = await uploadToCloudinary(file.buffer, {
+            folder: "besocial/avatars",
+            resource_type: "image",
+            transformation: [{ width: 400, height: 400, crop: "fill", quality: "auto", fetch_format: "auto" }],
+          });
+          
+          if (!result.secure_url) {
+            errors.push("Avatar: No URL returned from Cloudinary");
+          } else {
+            // Override file path with Cloudinary URL
+            req.files.avatar[0].path = result.secure_url;
+            req.files.avatar[0].cloudinaryUrl = result.secure_url;
+            req.files.avatar[0].cloudinaryPublicId = result.public_id;
+            console.log("✅ Avatar uploaded to Cloudinary:", result.secure_url);
+          }
+        } catch (avatarErr) {
+          console.error("❌ Avatar upload error:", avatarErr.message);
+          errors.push(`Avatar upload failed: ${avatarErr.message}`);
+        }
       }
 
       // Upload coverImage to Cloudinary if provided
       if (req.files?.coverImage?.[0]) {
-        const file = req.files.coverImage[0];
-        const result = await uploadToCloudinary(file.buffer, {
-          folder: "besocial/covers",
-          resource_type: "image",
-          transformation: [{ width: 1200, height: 400, crop: "fill", quality: "auto", fetch_format: "auto" }],
-        });
-        req.files.coverImage[0].path = result.secure_url;
-        req.files.coverImage[0].cloudinaryUrl = result.secure_url;
-        console.log("✅ Cover uploaded to Cloudinary:", result.secure_url);
+        try {
+          const file = req.files.coverImage[0];
+          const result = await uploadToCloudinary(file.buffer, {
+            folder: "besocial/covers",
+            resource_type: "image",
+            transformation: [{ width: 1200, height: 400, crop: "fill", quality: "auto", fetch_format: "auto" }],
+          });
+          
+          if (!result.secure_url) {
+            errors.push("Cover image: No URL returned from Cloudinary");
+          } else {
+            req.files.coverImage[0].path = result.secure_url;
+            req.files.coverImage[0].cloudinaryUrl = result.secure_url;
+            req.files.coverImage[0].cloudinaryPublicId = result.public_id;
+            console.log("✅ Cover image uploaded to Cloudinary:", result.secure_url);
+          }
+        } catch (coverErr) {
+          console.error("❌ Cover image upload error:", coverErr.message);
+          errors.push(`Cover image upload failed: ${coverErr.message}`);
+        }
       }
+
+      // If any errors, return them
+      if (errors.length > 0) {
+        console.error("❌ Profile upload errors:", errors);
+        return res.status(500).json({
+          message: "Failed to upload profile images",
+          details: errors,
+        });
+      }
+
+      // Mark that all files are from Cloudinary
+      req.allFilesFromCloudinary = true;
     } catch (uploadErr) {
-      console.error("Profile upload error:", uploadErr);
+      console.error("❌ Profile upload error:", uploadErr);
       return res.status(500).json({ message: "Image upload failed" });
     }
 

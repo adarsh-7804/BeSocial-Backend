@@ -400,11 +400,17 @@ const uploadWithCompression = (req, res, next) => {
     if (req.files && req.files.media && req.files.media.length > 0) {
       try {
         const processedFiles = [];
+        const failedFiles = [];
 
         for (const file of req.files.media) {
           try {
             const isImage = file.mimetype.startsWith("image/");
             const isVideo = file.mimetype.startsWith("video/");
+
+            if (!isImage && !isVideo) {
+              failedFiles.push(`${file.originalname}: Unsupported file type`);
+              continue;
+            }
 
             let cloudinaryResult;
 
@@ -415,9 +421,13 @@ const uploadWithCompression = (req, res, next) => {
                 transformation: [{ quality: "auto", fetch_format: "auto" }],
               });
 
+              if (!cloudinaryResult.secure_url) {
+                failedFiles.push(`${file.originalname}: No Cloudinary URL returned`);
+                continue;
+              }
+
               processedFiles.push({
                 ...file,
-                // Cloudinary URLs - use these in your DB
                 path: cloudinaryResult.secure_url,
                 cloudinaryUrl: cloudinaryResult.secure_url,
                 cloudinaryPublicId: cloudinaryResult.public_id,
@@ -446,6 +456,11 @@ const uploadWithCompression = (req, res, next) => {
                 resource_type: "video",
                 transformation: [{ quality: "auto" }],
               });
+
+              if (!cloudinaryResult.secure_url) {
+                failedFiles.push(`${file.originalname}: No Cloudinary URL returned`);
+                continue;
+              }
 
               // Generate thumbnail URL from Cloudinary automatically
               const thumbnailUrl = cloudinaryResult.secure_url
@@ -481,27 +496,31 @@ const uploadWithCompression = (req, res, next) => {
             }
 
           } catch (fileErr) {
-            console.error(`⚠️ Error uploading ${file.originalname} to Cloudinary:`, fileErr.message);
-            processedFiles.push({
-              ...file,
-              compressed: null,
-              error: fileErr.message,
-              processedPath: null,
-            });
+            console.error(`❌ Error uploading ${file.originalname} to Cloudinary:`, fileErr.message);
+            failedFiles.push(`${file.originalname}: ${fileErr.message}`);
           }
         }
 
+        // If any files failed, return error
+        if (failedFiles.length > 0) {
+          console.error("❌ Some files failed to upload:", failedFiles);
+          return res.status(400).json({
+            message: "Failed to upload some files to Cloudinary",
+            details: failedFiles,
+          });
+        }
+
+        // All files uploaded successfully to Cloudinary
         req.files = processedFiles;
+        req.allFilesFromCloudinary = true; // Flag to verify in controller
       } catch (err) {
         console.error("❌ File processing error", err);
         return res.status(500).json({ message: "Media upload failed" });
       }
     } else {
-      if (!req.files) {
-        req.files = [];
-      } else if (req.files && !Array.isArray(req.files)) {
-        req.files = req.files.media || [];
-      }
+      // No files uploaded, set empty array
+      req.files = [];
+      req.allFilesFromCloudinary = true;
     }
 
     next();

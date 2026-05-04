@@ -758,11 +758,25 @@ const updateProfile = async (req, res) => {
     }
 
     if (req.files?.avatar) {
-      updates.avatar = req.files.avatar[0].path;
+      const avatarUrl = req.files.avatar[0].path;
+      // Validate it's a Cloudinary URL
+      if (!avatarUrl || !avatarUrl.includes("cloudinary.com")) {
+        return res.status(400).json({
+          message: "Invalid avatar: must be uploaded to Cloudinary",
+        });
+      }
+      updates.avatar = avatarUrl;
     }
 
     if (req.files?.coverImage) {
-      updates.coverImage = req.files.coverImage[0].path;
+      const coverUrl = req.files.coverImage[0].path;
+      // Validate it's a Cloudinary URL
+      if (!coverUrl || !coverUrl.includes("cloudinary.com")) {
+        return res.status(400).json({
+          message: "Invalid cover image: must be uploaded to Cloudinary",
+        });
+      }
+      updates.coverImage = coverUrl;
     }
 
     if (updates.tags && !Array.isArray(updates.tags)) {

@@ -176,7 +176,31 @@ async function createPost(req, res) {
     //   }
     // });
 
-    const media = files.map((file) => {
+    // Validate that all files are from Cloudinary (middleware validation)
+    if (!req.allFilesFromCloudinary && files.length > 0) {
+      console.error("❌ SECURITY: Files not processed through Cloudinary!");
+      return res.status(500).json({
+        message: "File upload system error - files not processed correctly",
+      });
+    }
+
+    // Helper to validate Cloudinary URL
+    const isCloudinaryUrl = (url) => {
+      if (!url || typeof url !== "string") return false;
+      return url.includes("cloudinary.com") || url.startsWith("https://res.cloudinary.com");
+    };
+
+    let media;
+    try {
+      // Validate that all files are from Cloudinary (middleware validation)
+      if (!req.allFilesFromCloudinary && files.length > 0) {
+        console.error("❌ SECURITY: Files not processed through Cloudinary!");
+        return res.status(500).json({
+          message: "File upload system error - files not processed correctly",
+        });
+      }
+
+      media = files.map((file) => {
       const isVideo = file.mimetype?.startsWith("video/");
       const isGif =
         file.mimetype === "image/gif" || file.originalname?.endsWith(".gif");
@@ -184,6 +208,13 @@ async function createPost(req, res) {
       // Cloudinary image upload result
       if (file.compressed && file.mimetype?.startsWith("image/")) {
         console.log(`✅ Using Cloudinary image: ${file.originalname}`);
+
+        // Validate Cloudinary URLs
+        if (!isCloudinaryUrl(file.compressed.full)) {
+          throw new Error(
+            `Invalid image URL for ${file.originalname}: not a Cloudinary URL`
+          );
+        }
 
         return {
           fileId: file.cloudinaryPublicId || file.originalname,
@@ -227,6 +258,13 @@ async function createPost(req, res) {
       else if (isVideo && file.compressed?.type === "video") {
         console.log(`✅ Using Cloudinary video: ${file.originalname}`);
 
+        // Validate Cloudinary URLs
+        if (!isCloudinaryUrl(file.compressed.thumbnail)) {
+          throw new Error(
+            `Invalid video URL for ${file.originalname}: not a Cloudinary URL`
+          );
+        }
+
         return {
           fileId: file.cloudinaryPublicId || file.originalname,
           originalName: file.originalname,
@@ -247,26 +285,22 @@ async function createPost(req, res) {
         };
       }
 
-      // Fallback — file uploaded but no compression data
+      // ❌ NO FALLBACK ALLOWED - All files MUST be from Cloudinary
       else {
-        console.log(`⚠️ Fallback media item: ${file.originalname}`);
-        return {
-          fileId: file.cloudinaryPublicId || file.originalname,
-          originalName: file.originalname,
-          type: isGif ? "gif" : isVideo ? "video" : "image",
-          image: file.path
-            ? {
-                thumbnail: file.path,
-                medium: file.path,
-                full: file.path,
-                uploadedAt: new Date(),
-              }
-            : undefined,
-        };
+        throw new Error(
+          `File ${file.originalname} was not properly processed through Cloudinary`
+        );
       }
     });
 
     console.log("📦 Media array prepared:", media.length, "items");
+    } catch (mediaErr) {
+      console.error("❌ Media processing error:", mediaErr.message);
+      return res.status(400).json({
+        message: "Media processing failed",
+        error: mediaErr.message,
+      });
+    }
 
     const audience = ["public", "friends", "private"].includes(
       req.body?.audience,

@@ -40,7 +40,9 @@ const server = http.createServer(app)
 
 app.set("etag", false);
 
-const allowedOrigins = process.env.CLIENT_URL;
+const allowedOrigins = process.env.CLIENT_URL
+  .split(",")
+  .map(url => url.trim());
 
 // const allowedOrigins = [
 //   "http://localhost:5173",
@@ -110,7 +112,7 @@ app.get('/api/debug/recent-post', async (req, res) => {
 });
 
 // Static files for uploads
-// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Error handling middleware
 app.use((error, req, res, next) => {

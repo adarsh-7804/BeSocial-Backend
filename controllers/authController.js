@@ -362,7 +362,7 @@ async function sendVerifyOtp(req, res) {
         .status(404)
         .json({
           message:
-            "Email not found in our system. Please, enter registered E-mail",
+            "Email not found in our system.",
         });
     }
 
@@ -377,7 +377,7 @@ async function sendVerifyOtp(req, res) {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: "Password recovery OTP",
-      text: `Hey ${user.firstName}, here is your "Account Verification" OTP: ${otp}`,
+      text: `Hey ${user.firstName}, here is your Password Recovery OTP: ${otp}`,
     };
     await sendEmail(mailOption);
 
@@ -476,6 +476,38 @@ async function isAuthenticated(req, res) {
     return res.status(200).json({ success: true });
   } catch (err) {
     return res.status(400).json({ success: false, message: err.message });
+  }
+}
+
+// VALIDATE OTP WITHOUT CLEARING (for forgot password flow)
+
+async function validateResetOtp(req, res) {
+  const { email, resetPasswordOtp } = req.body;
+
+  if (!email || !resetPasswordOtp) {
+    return res.status(404).json({ message: "Email and OTP are required" });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        message: "Email not found in our system.",
+      });
+    }
+
+    if (!user.resetPasswordOtp || user.resetPasswordOtp !== resetPasswordOtp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (user.resetPasswordOtpExpires < Date.now()) {
+      return res.status(410).json({ message: "OTP expired" });
+    }
+
+    // Don't clear OTP here - let reset-pass do that
+    return res.status(200).json({ message: "OTP is valid" });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 }
 
@@ -899,6 +931,7 @@ module.exports = {
   verifyLoginOtp,
   logoutUser,
   forgetPass,
+  validateResetOtp,
   resetPassword,
   sendVerifyOtp,
   verifyEmial,

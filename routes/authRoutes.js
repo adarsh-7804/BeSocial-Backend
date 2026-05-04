@@ -4,6 +4,7 @@
     loginUser,
     logoutUser,
     resetPassword,
+    validateResetOtp,
     sendVerifyOtp,
     verifyEmial,
     isAuthenticated,
@@ -105,6 +106,7 @@
   router.post("/user/verify-login-otp", verifyLoginOtp);
   router.post("/user/send-otp", sendVerifyOtp);
   router.post("/user/verify-account", verifyEmial);
+  router.post("/user/validate-reset-otp", validateResetOtp);
   router.post("/user/is-auth", isAuthenticated);
 
 

@@ -362,7 +362,7 @@ async function sendVerifyOtp(req, res) {
         .status(404)
         .json({
           message:
-            "Email not found in our system.Please enter registered E-mail",
+            "Email not found in our system. Please, enter registered E-mail",
         });
     }
 

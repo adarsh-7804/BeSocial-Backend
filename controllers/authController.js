@@ -209,7 +209,12 @@ async function verifyLoginOtp(req, res) {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: "Email not found in our system.Please enter registered E-mail" });
+      return res
+        .status(404)
+        .json({
+          message:
+            "Email not found in our system.Please enter registered E-mail",
+        });
     }
 
     if (
@@ -353,7 +358,12 @@ async function sendVerifyOtp(req, res) {
     // }
 
     if (!user) {
-      return res.status(404).json({ message: "User not foundEmail not found in our system.Please enter registered E-mail" });
+      return res
+        .status(404)
+        .json({
+          message:
+            "Email not found in our system.Please enter registered E-mail",
+        });
     }
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
@@ -385,7 +395,12 @@ async function forgetPass(req, res) {
     const user = await User.findOne({ email: req.body.email });
 
     if (!user) {
-      return res.status(404).json({ message: "Email not found in our system.Please enter registered E-mail" });
+      return res
+        .status(404)
+        .json({
+          message:
+            "Email not found in our system.Please enter registered E-mail",
+        });
     }
 
     const resetToken = user.createResetpasswordToken();
@@ -474,7 +489,11 @@ async function resetPassword(req, res) {
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "Email not found in our system.Please enter registered E-mail" });
+    if (!user)
+      return res.status(404).json({
+        message:
+          "Email not found in our system. Please enter a registered email.",
+      });
 
     if (
       user.resetPasswordOtp == "" ||

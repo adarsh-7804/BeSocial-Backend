@@ -385,7 +385,7 @@ async function forgetPass(req, res) {
     const user = await User.findOne({ email: req.body.email });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "Email not found in our system.Please enter registered E-mail" });
     }
 
     const resetToken = user.createResetpasswordToken();

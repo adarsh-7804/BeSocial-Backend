@@ -495,7 +495,7 @@ async function resetPassword(req, res) {
 
     return res.status(201).json({ message: "Password reset successfully" });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: message });
   }
 }
 

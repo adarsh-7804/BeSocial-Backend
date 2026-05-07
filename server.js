@@ -128,6 +128,10 @@ app.use((error, req, res, next) => {
 
 socketHandler(io);
 
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {

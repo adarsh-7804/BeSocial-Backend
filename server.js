@@ -16,7 +16,6 @@ const path = require('path')
 const connectDB = require('./config/db');
 
 
-
 const multer = require('multer'); // Added missing import
 
 // Import the cron job initializers
@@ -26,6 +25,7 @@ const { initStoryCleanupJob } = require("./utils/storyCleanup");
 // connectDB();
 
 const express = require('express');
+const compression = require('compression');
 const http  = require('http') 
 const { Server } = require("socket.io");
 const socketHandler = require('./socket')
@@ -33,6 +33,14 @@ const cors = require('cors');
 const cookieParser = require("cookie-parser");
 
 const app = express();
+
+app.use(
+  compression({
+    level: 6,
+    threshold: 10 * 1000,
+  })
+);
+
 const server = http.createServer(app)
 
 

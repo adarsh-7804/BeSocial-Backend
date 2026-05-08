@@ -6,7 +6,7 @@ const { getHiddenPostIds } = require("../utils/feedFilters")
 
 //  Helper function to inject ads after every 5 posts 
 async function injectAdsIntoPosts(posts, userId, page = 1, limit = 20) {
-  const ADS_INTERVAL = 5; 
+  const ADS_INTERVAL = 5;
   const result = [];
   let regularPostCount = 0;
 
@@ -57,46 +57,46 @@ async function enrichPosts(posts, userId) {
   });
 
   // return Promise.all(
-    // posts.map(async (post) => {
-      // Handle both Mongoose documents and aggregate results
-      // const postObj = post.toObject ? post.toObject() : { ...post };
-      // const postId = postObj._id;
-// 
-      // const comments = await Comment.find({ post: postId })
-        // .populate("user", "firstName lastName avatar")
-        // .populate("replies.user", "firstName lastName avatar")
-        // .sort({ createdAt: -1 });
-// 
-      // return {
-        // ...postObj,
-        // comments: comments || [],
-        // currentUserReaction: userReactionMap[postId.toString()] || null,
-      // };
-    // }),
+  // posts.map(async (post) => {
+  // Handle both Mongoose documents and aggregate results
+  // const postObj = post.toObject ? post.toObject() : { ...post };
+  // const postId = postObj._id;
+  // 
+  // const comments = await Comment.find({ post: postId })
+  // .populate("user", "firstName lastName avatar")
+  // .populate("replies.user", "firstName lastName avatar")
+  // .sort({ createdAt: -1 });
+  // 
+  // return {
+  // ...postObj,
+  // comments: comments || [],
+  // currentUserReaction: userReactionMap[postId.toString()] || null,
+  // };
+  // }),
   // );
 
-  const comment = await Comment.find({ 
-    post: { $in: postIds },    
+  const comment = await Comment.find({
+    post: { $in: postIds },
   })
-  .populate("user", "firstName lastName avatar")
-  .populate("replies.user", "firstName lastName avatar")
-  .sort({ createdAt: -1 });
+    .populate("user", "firstName lastName avatar")
+    .populate("replies.user", "firstName lastName avatar")
+    .sort({ createdAt: -1 });
 
 
   const commentsMap = {};
 
   comment.forEach((comment) => {
     const postId = comment.post.toString();
-  
+
     if (!commentsMap[postId]) {
-      commentsMap[postId] =[];
+      commentsMap[postId] = [];
     }
-    
+
     commentsMap[postId].push(comment);
   })
 
   return posts.map((post) => {
-    const postObj = post.toObject ? post.toObject() : {...post};
+    const postObj = post.toObject ? post.toObject() : { ...post };
     const postId = postObj._id.toString();
 
     return {
@@ -120,20 +120,20 @@ async function getFollowingFeed(req, res, page, limit) {
       $or: [
         {
           audience: "public",
-          isAdvertisement: { $ne: true }, 
+          isAdvertisement: { $ne: true },
           user: { $in: [...friendIds] },
-          _id: { $nin: hiddenPostIds }, 
+          _id: { $nin: hiddenPostIds },
 
         },
         {
           audience: "friends",
           user: { $in: [...friendIds] },
-          _id: { $nin: hiddenPostIds }, 
+          _id: { $nin: hiddenPostIds },
         },
         {
           audience: "private",
           user: userId,
-          _id: { $nin: hiddenPostIds }, 
+          _id: { $nin: hiddenPostIds },
         },
       ],
     })
@@ -157,10 +157,10 @@ async function getLatestFeed(req, res, page, limit) {
     const userId = req.user._id;
     const hiddenPostIds = await getHiddenPostIds(userId);
 
-    const posts = await Post.find({ 
-      audience: "public", 
-      isAdvertisement: { $ne: true }, 
-      _id: { $nin: hiddenPostIds }, 
+    const posts = await Post.find({
+      audience: "public",
+      isAdvertisement: { $ne: true },
+      _id: { $nin: hiddenPostIds },
     })
       .populate("user", "firstName lastName avatar")
       .populate("mentions.user", "firstName lastName avatar")
@@ -180,7 +180,11 @@ async function getLatestFeed(req, res, page, limit) {
 async function getForYouFeed(req, res, page, limit) {
   try {
     const userId = req.user._id;
-    const userPosts = await Post.find({ user: userId });
+    // const userPosts = await Post.find({ user: userId });
+    const userPosts = await Post.find(
+      { user: userId },
+      "hashtags"
+    ).lean();
     const hashtags = userPosts.flatMap((p) => p.hashtags);
     const hiddenPostIds = await getHiddenPostIds(userId);
     const currentUser = await User.findById(userId).select("friends");
@@ -196,9 +200,9 @@ async function getForYouFeed(req, res, page, limit) {
       isAdvertisement: { $ne: true },
       _id: { $nin: hiddenPostIds },
       $or: [
-        { audience: "public" , user:[...friendIds , userId]},
+        { audience: "public", user: [...friendIds, userId] },
         { audience: "private", user: userId },
-        { audience: "friends", user: [...friendIds , userId] }
+        { audience: "friends", user: [...friendIds, userId] }
       ],
     })
       .populate("user", "firstName lastName avatar")
@@ -226,11 +230,12 @@ async function getTrendingFeed(req, res, page, limit) {
       //   $match: { audience: "public" },
       //    _id: { $nin: hiddenPostIds },
       // },
-      { $match: { 
+      {
+        $match: {
           audience: "public",
           isAdvertisement: { $ne: true },
-          _id: { $nin: hiddenPostIds } 
-        } 
+          _id: { $nin: hiddenPostIds }
+        }
       },
       {
         $addFields: {

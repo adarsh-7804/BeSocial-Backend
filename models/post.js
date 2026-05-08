@@ -253,7 +253,20 @@ const postSchema = new mongoose.Schema(
 
 // Indexes for searching
 postSchema.index({ hashtags: 1 });
+
 postSchema.index({ createdAt: -1 });
+
+postSchema.index({ user: 1 });
+
+postSchema.index({ audience: 1, createdAt: -1 });
+
+postSchema.index({ hashtags: 1 });
+
+postSchema.index({ tags: 1 });
+
+postSchema.index({ isPinned: 1 });
+
+postSchema.index({ createdAt: -1, user: 1 });
 
 const Post = mongoose.model("Post", postSchema);
 

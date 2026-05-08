@@ -210,7 +210,8 @@ async function getForYouFeed(req, res, page, limit) {
       .populate("tags", "firstName lastName avatar")
       .sort({ isPinned: -1, createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const enriched = await enrichPosts(posts, userId);
     const withAds = await injectAdsIntoPosts(enriched, userId, page, limit);

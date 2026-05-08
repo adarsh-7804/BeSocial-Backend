@@ -47,66 +47,94 @@ async function injectAdsIntoPosts(posts, userId, page = 1, limit = 20) {
   return result;
 }
 
+// async function enrichPosts(posts, userId) {
+//   const postIds = posts.map((p) => p._id || p.id);
+
+//   const userLikes = await Like.find({ user: userId, post: { $in: postIds } });
+//   const userReactionMap = {};
+//   userLikes.forEach((like) => {
+//     userReactionMap[like.post.toString()] = like.type;
+//   });
+
+//   // return Promise.all(
+//   // posts.map(async (post) => {
+//   // Handle both Mongoose documents and aggregate results
+//   // const postObj = post.toObject ? post.toObject() : { ...post };
+//   // const postId = postObj._id;
+//   // 
+//   // const comments = await Comment.find({ post: postId })
+//   // .populate("user", "firstName lastName avatar")
+//   // .populate("replies.user", "firstName lastName avatar")
+//   // .sort({ createdAt: -1 });
+//   // 
+//   // return {
+//   // ...postObj,
+//   // comments: comments || [],
+//   // currentUserReaction: userReactionMap[postId.toString()] || null,
+//   // };
+//   // }),
+//   // );
+
+//   const comment = await Comment.find({
+//     post: { $in: postIds },
+//   })
+//     .populate("user", "firstName lastName avatar")
+//     .populate("replies.user", "firstName lastName avatar")
+//     .sort({ createdAt: -1 });
+
+
+//   const commentsMap = {};
+
+//   comment.forEach((comment) => {
+//     const postId = comment.post.toString();
+
+//     if (!commentsMap[postId]) {
+//       commentsMap[postId] = [];
+//     }
+
+//     commentsMap[postId].push(comment);
+//   })
+
+//   return posts.map((post) => {
+//     const postObj = post.toObject ? post.toObject() : { ...post };
+//     const postId = postObj._id.toString();
+
+//     return {
+//       ...postObj,
+//       comments: commentsMap[postId] || [],
+//       currentUserReaction: userReactionMap[postId] || null,
+//     }
+//   })
+// }
+
 async function enrichPosts(posts, userId) {
   const postIds = posts.map((p) => p._id || p.id);
 
-  const userLikes = await Like.find({ user: userId, post: { $in: postIds } });
+  const userLikes = await Like.find({
+    user: userId,
+    post: { $in: postIds }
+  }).lean();
+
   const userReactionMap = {};
+
   userLikes.forEach((like) => {
     userReactionMap[like.post.toString()] = like.type;
   });
 
-  // return Promise.all(
-  // posts.map(async (post) => {
-  // Handle both Mongoose documents and aggregate results
-  // const postObj = post.toObject ? post.toObject() : { ...post };
-  // const postId = postObj._id;
-  // 
-  // const comments = await Comment.find({ post: postId })
-  // .populate("user", "firstName lastName avatar")
-  // .populate("replies.user", "firstName lastName avatar")
-  // .sort({ createdAt: -1 });
-  // 
-  // return {
-  // ...postObj,
-  // comments: comments || [],
-  // currentUserReaction: userReactionMap[postId.toString()] || null,
-  // };
-  // }),
-  // );
-
-  const comment = await Comment.find({
-    post: { $in: postIds },
-  })
-    .populate("user", "firstName lastName avatar")
-    .populate("replies.user", "firstName lastName avatar")
-    .sort({ createdAt: -1 });
-
-
-  const commentsMap = {};
-
-  comment.forEach((comment) => {
-    const postId = comment.post.toString();
-
-    if (!commentsMap[postId]) {
-      commentsMap[postId] = [];
-    }
-
-    commentsMap[postId].push(comment);
-  })
-
   return posts.map((post) => {
-    const postObj = post.toObject ? post.toObject() : { ...post };
+    const postObj = post.toObject
+      ? post.toObject()
+      : { ...post };
+
     const postId = postObj._id.toString();
 
     return {
       ...postObj,
-      comments: commentsMap[postId] || [],
-      currentUserReaction: userReactionMap[postId] || null,
-    }
-  })
+      currentUserReaction:
+        userReactionMap[postId] || null,
+    };
+  });
 }
-
 
 
 async function getFollowingFeed(req, res, page, limit) {

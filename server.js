@@ -34,6 +34,21 @@ const cookieParser = require("cookie-parser");
 
 const app = express();
 
+// API Timing Middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+
+    console.log(
+      `${req.method} ${req.originalUrl} - ${duration}ms`
+    );
+  });
+
+  next();
+});
+
 app.use(
   compression({
     level: 6,
